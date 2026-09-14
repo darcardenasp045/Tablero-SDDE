@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tablero de Control Institucional - SDDE</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-indigo-900 text-white p-5 shadow-lg flex flex-wrap justify-between items-center gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-wide flex items-center gap-2">
+        <i data-lucide="activity" class="w-7 h-7 text-indigo-400"></i>
+        Tablero de Control Institucional
+      </h1>
+      <p class="text-indigo-200 text-sm mt-0.5">Secretaría Distrital de Desarrollo Económico (SDDE)</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="fetchAndProcessData()" class="bg-indigo-800 hover:bg-indigo-700 text-xs px-3.5 py-2 rounded-lg border border-indigo-600 flex items-center gap-2 transition font-medium">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
+        Sincronizar Sheets
+      </button>
+      <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Conectado
+      </span>
+    </div>
+  </header>
+
+  <main class="p-6 max-w-7xl mx-auto space-y-6">
+
+    <!-- Panel de Selección -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+      <div>
+        <label for="processSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+          <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i>
+          1. Selecciona el Proceso:
+        </label>
+        <select id="processSelect" onchange="onProcessChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">Cargando procesos...</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="indicatorSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+          <i data-lucide="target" class="w-4 h-4 text-indigo-600"></i>
+          2. Selecciona el Indicador:
+        </label>
+        <select id="indicatorSelect" onchange="onIndicatorChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">Selecciona un proceso primero...</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tarjetas KPI Optimizadas (3 Tarjetas) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- KPI 1: Periodicidad -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Periodicidad / Avance del Año</p>
+          <h3 id="kpiFreq" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
+          <p id="kpiReportCount" class="text-xs text-slate-500 mt-1">-- reportes válidos ejecutados</p>
+        </div>
+        <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+          <i data-lucide="calendar"></i>
+        </div>
+      </div>
+
+      <!-- KPI 2: Cumplimiento Proporcional Promedio -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cumplimiento Proporcional</p>
+          <h3 id="kpiResultado" class="text-xl font-extrabold text-emerald-600 mt-1">--</h3>
+          <p id="kpiResultadoSub" class="text-xs text-slate-500 mt-1">Promedio de los periodos reportados</p>
+        </div>
+        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="trending-up"></i>
+        </div>
+      </div>
+
+      <!-- KPI 3: Estado Semafórico -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado de Gestión</p>
+          <h3 id="kpiStatus" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
+          <p id="kpiStatusSub" class="text-xs text-slate-500 mt-1">Diagnóstico según cumplimiento</p>
+        </div>
+        <div class="p-2.5 bg-slate-100 text-slate-600 rounded-xl" id="kpiStatusIcon">
+          <i data-lucide="alert-circle"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Gráficos Dinámicos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Meta vs Ejecución -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+          <i data-lucide="line-chart" class="w-4 h-4 text-indigo-600"></i>
+          Meta vs Ejecución por Corte
+        </h2>
+        <p class="text-xs text-slate-400 mb-4">Valores absolutos reportados por período</p>
+        <div class="relative h-64">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Porcentaje de Cumplimiento Histórico -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-600"></i>
+          Evolución del Cumplimiento (%)
+        </h2>
+        <p class="text-xs text-slate-400 mb-4">Comportamiento relativo por cada corte reportado</p>
+        <div class="relative h-64">
+          <canvas id="performanceChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tabla Histórica Desplegada -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+        <div>
+          <h2 id="tableTitle" class="text-base font-bold text-slate-800">Histórico de Periodos Reportados</h2>
+          <p id="tableSub" class="text-xs text-slate-400">Sólo incluye información reportada sin errores de cálculo</p>
+        </div>
+        <span id="rowCount" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">0 cortes</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-200">
+              <th class="p-4">Reporte / Periodo</th>
+              <th class="p-4 text-center">Meta Periodo</th>
+              <th class="p-4 text-center">Ejecución Real</th>
+              <th class="p-4 text-center">% Cumplimiento</th>
+              <th class="p-4">Observación</th>
+              <th class="p-4">Evidencias</th>
+            </tr>
+          </thead>
+          <tbody id="indicatorTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSBxyqCYcSqlLAb-pQeYg4P14mMXtCznp5AGKLzcz_Xw-kltbPA3vN1jSrNHS7Ejg/pub?gid=1410422720&single=true&output=csv';
+
+    let groupedData = {};
+    let charts = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initCharts();
+      fetchAndProcessData();
+    });
+
+    function fetchAndProcessData() {
+      const refreshIcon = document.getElementById('refreshIcon');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          processRawData(results.data);
+          populateProcessSelect();
+          if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        },
+        error: (err) => {
+          console.error("Error al cargar el CSV:", err);
+          if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        }
+      });
+    }
+
+    function cleanNumber(val) {
+      if (!val) return 0;
+      let cleaned = val.toString().trim()
+        .replace(/\$/g, '')
+        .replace(/%/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+      let num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    // Procesamiento con filtrado estricto anti-DIV/0
+    function processRawData(rows) {
+      groupedData = {};
+
+      rows.forEach(row => {
+        const proceso = (row['PROCESO'] || '').trim();
+        const indicador = (row['INDICADOR'] || '').trim();
+        const reporte = (row['REPORTE #'] || '').trim();
+        const ejecucionRaw = (row['EJECUCION'] || '').trim();
+        const resultadoRaw = (row['RESULTADO'] || '').trim();
+
+        if (!proceso || !indicador || !reporte) return;
+
+        // FILTRO STRICTO ANTI DIV/0 Y ERRORES DE EXCEL
+        const tieneError = resultadoRaw.includes('#DIV/0!') || 
+                           resultadoRaw.includes('#¡DIV/0!') || 
+                           resultadoRaw.includes('#N/A') || 
+                           resultadoRaw.includes('#REF!') || 
+                           resultadoRaw.includes('#VALOR!');
+
+        const tieneEjecucionValida = ejecucionRaw !== '' && ejecucionRaw !== null && ejecucionRaw !== undefined;
+
+        // Si hay error o no hay datos ejecutados, omitir la fila completamente
+        if (tieneError || !tieneEjecucionValida) return;
+
+        if (!groupedData[proceso]) groupedData[proceso] = {};
+        if (!groupedData[proceso][indicador]) groupedData[proceso][indicador] = [];
+
+        groupedData[proceso][indicador].push(row);
+      });
+    }
+
+    function populateProcessSelect() {
+      const processSelect = document.getElementById('processSelect');
+      const procesos = Object.keys(groupedData).sort();
+
+      processSelect.innerHTML = '';
+      if (procesos.length === 0) {
+        processSelect.innerHTML = '<option value="">No hay datos válidos</option>';
+        return;
+      }
+
+      procesos.forEach(p => {
+        processSelect.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+
+      onProcessChange();
+    }
+
+    function onProcessChange() {
+      const procesoSel = document.getElementById('processSelect').value;
+      const indicatorSelect = document.getElementById('indicatorSelect');
+
+      indicatorSelect.innerHTML = '';
+      if (!procesoSel || !groupedData[procesoSel]) return;
+
+      const indicadores = Object.keys(groupedData[procesoSel]).sort();
+      indicadores.forEach(ind => {
+        indicatorSelect.innerHTML += `<option value="${ind}">${ind}</option>`;
+      });
+
+      onIndicatorChange();
+    }
+
+    function onIndicatorChange() {
+      const proceso = document.getElementById('processSelect').value;
+      const indicador = document.getElementById('indicatorSelect').value;
+
+      if (!proceso || !indicador || !groupedData[proceso] || !groupedData[proceso][indicador]) {
+        clearDashboard();
+        return;
+      }
+
+      const cortes = groupedData[proceso][indicador];
+      updateDashboardForIndicator(proceso, indicador, cortes);
+    }
+
+    function updateDashboardForIndicator(proceso, indicador, cortes) {
+      const ultimoCorte = cortes[cortes.length - 1];
+      const totalReportesAnio = parseInt(ultimoCorte['# REPORTES'] || '12') || 12;
+      const reportesTranscurridos = cortes.length;
+
+      // 1. Periodicidad
+      let freqLabel = 'Mensual';
+      if (totalReportesAnio === 4) freqLabel = 'Trimestral';
+      else if (totalReportesAnio === 2) freqLabel = 'Semestral';
+      else if (totalReportesAnio === 1) freqLabel = 'Anual';
+
+      document.getElementById('kpiFreq').innerText = freqLabel;
+      document.getElementById('kpiReportCount').innerText = `${reportesTranscurridos} de ${totalReportesAnio} reportes (${Math.round((reportesTranscurridos / totalReportesAnio) * 100)}% del año transcurrido)`;
+
+      // 2. Cumplimiento Proporcional Promedio
+      let sumaPct = 0;
+      let cantidadValidos = 0;
+
+      cortes.forEach(c => {
+        let resStr = c['RESULTADO'] || '0';
+        let val = parseFloat(resStr.replace('%', '').replace(',', '.'));
+        if (!isNaN(val)) {
+          sumaPct += val;
+          cantidadValidos++;
+        }
+      });
+
+      const pctPromedio = cantidadValidos > 0 ? (sumaPct / cantidadValidos).toFixed(1) : '0.0';
+      
+      const resultadoElement = document.getElementById('kpiResultado');
+      resultadoElement.innerText = `${pctPromedio}%`;
+      document.getElementById('kpiResultadoSub').innerText = `Promedio de los ${cantidadValidos} periodos evaluados`;
+
+      // 3. Estado Semafórico
+      const statusElement = document.getElementById('kpiStatus');
+      const statusIcon = document.getElementById('kpiStatusIcon');
+
+      if (pctPromedio >= 90) {
+        statusElement.innerText = 'En Meta 🟢';
+        statusElement.className = 'text-xl font-extrabold text-emerald-600 mt-1';
+        statusIcon.className = 'p-2.5 bg-emerald-50 text-emerald-600 rounded-xl';
+      } else if (pctPromedio >= 60) {
+        statusElement.innerText = 'Alerta Moderada 🟡';
+        statusElement.className = 'text-xl font-extrabold text-amber-600 mt-1';
+        statusIcon.className = 'p-2.5 bg-amber-50 text-amber-600 rounded-xl';
+      } else {
+        statusElement.innerText = 'Crítico / Bajo 🔴';
+        statusElement.className = 'text-xl font-extrabold text-rose-600 mt-1';
+        statusIcon.className = 'p-2.5 bg-rose-50 text-rose-600 rounded-xl';
+      }
+
+      // 4. Tabla Histórica
+      document.getElementById('tableTitle').innerText = `${indicador}`;
+      document.getElementById('tableSub').innerText = `Proceso: ${proceso} | Periodicidad: ${freqLabel}`;
+      document.getElementById('rowCount').innerText = `${cortes.length} reportes válidos`;
+
+      const tbody = document.getElementById('indicatorTableBody');
+      tbody.innerHTML = '';
+
+      cortes.forEach(c => {
+        const res = c['RESULTADO'] || '-';
+        let badgeClass = 'bg-slate-100 text-slate-700';
+        if (res.includes('%')) {
+          const val = parseFloat(res.replace(',', '.'));
+          if (val >= 90) badgeClass = 'bg-emerald-100 text-emerald-800';
+          else if (val >= 60) badgeClass = 'bg-amber-100 text-amber-800';
+          else if (!isNaN(val)) badgeClass = 'bg-rose-100 text-rose-800';
+        }
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-4 font-semibold text-indigo-900">${c['REPORTE #'] || ''}</td>
+            <td class="p-4 text-center font-mono text-xs">${c['META'] || '-'}</td>
+            <td class="p-4 text-center font-mono text-xs font-bold text-slate-800">${c['EJECUCION'] || '-'}</td>
+            <td class="p-4 text-center">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">
+                ${res}
+              </span>
+            </td>
+            <td class="p-4 text-xs text-slate-600 max-w-sm">${c['OBSERVACION'] || 'Sin observación'}</td>
+            <td class="p-4 text-xs font-medium text-slate-500">${c['EVIDENCIAS'] || '-'}</td>
+          </tr>
+        `;
+      });
+
+      updateChartsForIndicator(cortes);
+    }
+
+    function initCharts() {
+      const opt = { responsive: true, maintainAspectRatio: false };
+
+      charts.trend = new Chart(document.getElementById('trendChart'), {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: opt
+      });
+
+      charts.performance = new Chart(document.getElementById('performanceChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: opt
+      });
+    }
+
+    function updateChartsForIndicator(cortes) {
+      const labels = cortes.map(c => c['REPORTE #']);
+      const metas = cortes.map(c => cleanNumber(c['META']));
+      const ejecuciones = cortes.map(c => cleanNumber(c['EJECUCION']));
+      const resultados = cortes.map(c => {
+        const raw = c['RESULTADO'] || '0';
+        return parseFloat(raw.replace('%', '').replace(',', '.')) || 0;
+      });
+
+      // Gráfico 1: Meta vs Ejecución
+      charts.trend.data = {
+        labels: labels,
+        datasets: [
+          { label: 'Meta', data: metas, backgroundColor: '#cbd5e1' },
+          { label: 'Ejecución Real', data: ejecuciones, backgroundColor: '#4f46e5' }
+        ]
+      };
+      charts.trend.update();
+
+      // Gráfico 2: % Cumplimiento
+      charts.performance.data = {
+        labels: labels,
+        datasets: [{
+          label: '% Cumplimiento',
+          data: resultados,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 5
+        }]
+      };
+      charts.performance.update();
+    }
+
+    function clearDashboard() {
+      document.getElementById('indicatorTableBody').innerHTML = '';
+      document.getElementById('kpiFreq').innerText = '--';
+      document.getElementById('kpiResultado').innerText = '--';
+      document.getElementById('kpiStatus').innerText = '--';
+    }
+  </script>
+</body>
+</html>
