@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tablero de Control Institucional - SDDE</title>
+  <title>Sistema de Tableros Institucionales - SDDE</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
@@ -12,154 +12,220 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sddedark: '#212952',
+            sddehover: '#1a2042'
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row">
 
-  <!-- Header -->
-  <header class="bg-indigo-900 text-white p-5 shadow-lg flex flex-wrap justify-between items-center gap-4">
+  <!-- Sidebar Lateral -->
+  <aside class="w-full md:w-64 bg-sddedark text-white flex-shrink-0 flex flex-col justify-between shadow-xl">
     <div>
-      <h1 class="text-2xl font-bold tracking-wide flex items-center gap-2">
-        <i data-lucide="activity" class="w-7 h-7 text-indigo-400"></i>
-        Tablero de Control Institucional
-      </h1>
-      <p class="text-indigo-200 text-sm mt-0.5">Secretaría Distrital de Desarrollo Económico (SDDE)</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <button onclick="fetchAndProcessData()" class="bg-indigo-800 hover:bg-indigo-700 text-xs px-3.5 py-2 rounded-lg border border-indigo-600 flex items-center gap-2 transition font-medium">
-        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
-        Sincronizar Sheets
-      </button>
-      <span class="bg-emerald-500/10 text-emerald-300 text-xs px-3 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        Conectado
-      </span>
-    </div>
-  </header>
+      <!-- Brand Header -->
+      <div class="p-5 border-b border-indigo-900/50 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-indigo-500/20 rounded-lg border border-indigo-400/30">
+            <i data-lucide="layout-grid" class="w-6 h-6 text-indigo-300"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-base tracking-wide leading-tight">SDDE Bogotá</h1>
+            <p class="text-[11px] text-indigo-300">Tableros de Gestión</p>
+          </div>
+        </div>
+      </div>
 
-  <main class="p-6 max-w-7xl mx-auto space-y-6">
+      <!-- Menú de Navegación -->
+      <nav class="p-4 space-y-1.5">
+        <p class="px-3 text-[10px] font-bold text-indigo-300 uppercase tracking-wider mb-2">Módulos de Gestión</p>
 
-    <!-- Panel de Selección -->
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+        <button onclick="switchTab('indicadores')" id="btnNavIndicadores" class="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition bg-indigo-600/30 text-white border border-indigo-500/30">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          Tablero de Indicadores
+        </button>
+
+        <button onclick="switchTab('planes')" id="btnNavPlanes" class="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition text-indigo-200 hover:bg-white/5 hover:text-white">
+          <i data-lucide="map" class="w-4 h-4"></i>
+          Tablero de Planes
+          <span class="ml-auto text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-1.5 py-0.5 rounded">Próximo</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Footer Sidebar -->
+    <div class="p-4 border-t border-indigo-900/50 text-xs text-indigo-300 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      Vigencia Institucional 2026
+    </div>
+  </aside>
+
+  <!-- Área Principal de Contenido -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Header Superior -->
+    <header class="bg-sddedark text-white p-5 shadow-md flex flex-wrap justify-between items-center gap-4 border-b border-indigo-900/40">
       <div>
-        <label for="processSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-          <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i>
-          1. Selecciona el Proceso:
-        </label>
-        <select id="processSelect" onchange="onProcessChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="">Cargando procesos...</option>
-        </select>
+        <h2 id="headerTitle" class="text-xl font-bold tracking-wide">Tablero de Indicadores de Gestión</h2>
+        <p id="headerSubtitle" class="text-indigo-200 text-xs mt-0.5">Seguimiento periódico a las metas e indicadores institucionales</p>
       </div>
-
-      <div>
-        <label for="indicatorSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-          <i data-lucide="target" class="w-4 h-4 text-indigo-600"></i>
-          2. Selecciona el Indicador:
-        </label>
-        <select id="indicatorSelect" onchange="onIndicatorChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="">Selecciona un proceso primero...</option>
-        </select>
+      <div id="headerActions" class="flex items-center gap-3">
+        <button onclick="fetchAndProcessData()" class="bg-indigo-600/40 hover:bg-indigo-600/60 text-xs px-3.5 py-2 rounded-lg border border-indigo-400/30 flex items-center gap-2 transition font-medium">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
+          Sincronizar Sheets
+        </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Tarjetas KPI Optimizadas (3 Tarjetas) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      
-      <!-- KPI 1: Periodicidad -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+    <!-- Módulo 1: Tablero de Indicadores -->
+    <main id="viewIndicadores" class="p-6 max-w-7xl mx-auto w-full space-y-6">
+
+      <!-- Panel de Selección -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Periodicidad / Avance del Año</p>
-          <h3 id="kpiFreq" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
-          <p id="kpiReportCount" class="text-xs text-slate-500 mt-1">-- reportes válidos ejecutados</p>
+          <label for="processSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i>
+            1. Selecciona el Proceso:
+          </label>
+          <select id="processSelect" onchange="onProcessChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">Cargando procesos...</option>
+          </select>
         </div>
-        <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-          <i data-lucide="calendar"></i>
-        </div>
-      </div>
 
-      <!-- KPI 2: Cumplimiento Proporcional Promedio -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
         <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cumplimiento Proporcional</p>
-          <h3 id="kpiResultado" class="text-xl font-extrabold text-emerald-600 mt-1">--</h3>
-          <p id="kpiResultadoSub" class="text-xs text-slate-500 mt-1">Promedio de los periodos reportados</p>
-        </div>
-        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-          <i data-lucide="trending-up"></i>
+          <label for="indicatorSelect" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="target" class="w-4 h-4 text-indigo-600"></i>
+            2. Selecciona el Indicador:
+          </label>
+          <select id="indicatorSelect" onchange="onIndicatorChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">Selecciona un proceso primero...</option>
+          </select>
         </div>
       </div>
 
-      <!-- KPI 3: Estado Semafórico -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+      <!-- Tarjetas KPI -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Periodicidad / Avance</p>
+            <h3 id="kpiFreq" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
+            <p id="kpiReportCount" class="text-xs text-slate-500 mt-1">-- reportes válidos ejecutados</p>
+          </div>
+          <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+            <i data-lucide="calendar"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cumplimiento Proporcional</p>
+            <h3 id="kpiResultado" class="text-xl font-extrabold text-emerald-600 mt-1">--</h3>
+            <p id="kpiResultadoSub" class="text-xs text-slate-500 mt-1">Promedio de periodos evaluados</p>
+          </div>
+          <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+            <i data-lucide="trending-up"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-start">
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado de Gestión</p>
+            <h3 id="kpiStatus" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
+            <p id="kpiStatusSub" class="text-xs text-slate-500 mt-1">Diagnóstico según avance</p>
+          </div>
+          <div class="p-2.5 bg-slate-100 text-slate-600 rounded-xl" id="kpiStatusIcon">
+            <i data-lucide="alert-circle"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Gráficos Dinámicos -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <i data-lucide="line-chart" class="w-4 h-4 text-indigo-600"></i>
+            Meta vs Ejecución por Corte
+          </h2>
+          <p class="text-xs text-slate-400 mb-4">Valores absolutos reportados por período</p>
+          <div class="relative h-64">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-600"></i>
+            Evolución del Cumplimiento (%)
+          </h2>
+          <p class="text-xs text-slate-400 mb-4">Comportamiento relativo por cada corte reportado</p>
+          <div class="relative h-64">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tabla Histórica -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+          <div>
+            <h2 id="tableTitle" class="text-base font-bold text-slate-800">Histórico de Periodos Reportados</h2>
+            <p id="tableSub" class="text-xs text-slate-400">Sólo incluye información reportada sin errores de cálculo</p>
+          </div>
+          <span id="rowCount" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">0 cortes</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-200">
+                <th class="p-4">Reporte / Periodo</th>
+                <th class="p-4 text-center">Meta Periodo</th>
+                <th class="p-4 text-center">Ejecución Real</th>
+                <th class="p-4 text-center">% Cumplimiento</th>
+                <th class="p-4">Observación</th>
+                <th class="p-4">Evidencias</th>
+              </tr>
+            </thead>
+            <tbody id="indicatorTableBody" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Filas dinámicas -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Módulo 2: Tablero de Planes (En Construcción) -->
+    <main id="viewPlanes" class="p-6 max-w-7xl mx-auto w-full hidden flex-1 flex flex-col justify-center items-center">
+      <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 text-center max-w-lg space-y-4">
+        <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
+          <i data-lucide="hard-hat" class="w-8 h-8"></i>
+        </div>
         <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado de Gestión</p>
-          <h3 id="kpiStatus" class="text-xl font-extrabold text-slate-800 mt-1">--</h3>
-          <p id="kpiStatusSub" class="text-xs text-slate-500 mt-1">Diagnóstico según cumplimiento</p>
+          <h3 class="text-xl font-bold text-slate-800">Tablero de Planes en Construcción</h3>
+          <p class="text-sm text-slate-500 mt-2">Estamos preparando la infraestructura para conectar y visualizar el seguimiento a los Planes de Acción e Institucionales.</p>
         </div>
-        <div class="p-2.5 bg-slate-100 text-slate-600 rounded-xl" id="kpiStatusIcon">
-          <i data-lucide="alert-circle"></i>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Gráficos Dinámicos -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <!-- Meta vs Ejecución -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <i data-lucide="line-chart" class="w-4 h-4 text-indigo-600"></i>
-          Meta vs Ejecución por Corte
-        </h2>
-        <p class="text-xs text-slate-400 mb-4">Valores absolutos reportados por período</p>
-        <div class="relative h-64">
-          <canvas id="trendChart"></canvas>
+        <div class="pt-2">
+          <span class="bg-slate-100 text-slate-600 text-xs px-3 py-1.5 rounded-lg border border-slate-200 font-mono inline-flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i>
+            Esperando enlace de datos (Google Sheets)
+          </span>
         </div>
       </div>
+    </main>
 
-      <!-- Porcentaje de Cumplimiento Histórico -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-600"></i>
-          Evolución del Cumplimiento (%)
-        </h2>
-        <p class="text-xs text-slate-400 mb-4">Comportamiento relativo por cada corte reportado</p>
-        <div class="relative h-64">
-          <canvas id="performanceChart"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Tabla Histórica Desplegada -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-        <div>
-          <h2 id="tableTitle" class="text-base font-bold text-slate-800">Histórico de Periodos Reportados</h2>
-          <p id="tableSub" class="text-xs text-slate-400">Sólo incluye información reportada sin errores de cálculo</p>
-        </div>
-        <span id="rowCount" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">0 cortes</span>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead>
-            <tr class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-200">
-              <th class="p-4">Reporte / Periodo</th>
-              <th class="p-4 text-center">Meta Periodo</th>
-              <th class="p-4 text-center">Ejecución Real</th>
-              <th class="p-4 text-center">% Cumplimiento</th>
-              <th class="p-4">Observación</th>
-              <th class="p-4">Evidencias</th>
-            </tr>
-          </thead>
-          <tbody id="indicatorTableBody" class="divide-y divide-slate-100 text-slate-700">
-            <!-- Filas dinámicas -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
+  </div>
 
   <script>
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSBxyqCYcSqlLAb-pQeYg4P14mMXtCznp5AGKLzcz_Xw-kltbPA3vN1jSrNHS7Ejg/pub?gid=1410422720&single=true&output=csv';
@@ -172,6 +238,39 @@
       initCharts();
       fetchAndProcessData();
     });
+
+    // Cambiar entre Pestañas del Menú Lateral
+    function switchTab(tab) {
+      const viewIndicadores = document.getElementById('viewIndicadores');
+      const viewPlanes = document.getElementById('viewPlanes');
+      const btnInd = document.getElementById('btnNavIndicadores');
+      const btnPlanes = document.getElementById('btnNavPlanes');
+      const headerTitle = document.getElementById('headerTitle');
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      const headerActions = document.getElementById('headerActions');
+
+      if (tab === 'indicadores') {
+        viewIndicadores.classList.remove('hidden');
+        viewPlanes.classList.add('hidden');
+        
+        btnInd.className = "w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition bg-indigo-600/30 text-white border border-indigo-500/30";
+        btnPlanes.className = "w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition text-indigo-200 hover:bg-white/5 hover:text-white";
+
+        headerTitle.innerText = "Tablero de Indicadores de Gestión";
+        headerSubtitle.innerText = "Seguimiento periódico a las metas e indicadores institucionales";
+        headerActions.style.display = "flex";
+      } else {
+        viewIndicadores.classList.add('hidden');
+        viewPlanes.classList.remove('hidden');
+
+        btnPlanes.className = "w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition bg-indigo-600/30 text-white border border-indigo-500/30";
+        btnInd.className = "w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 transition text-indigo-200 hover:bg-white/5 hover:text-white";
+
+        headerTitle.innerText = "Tablero de Planes Institucionales";
+        headerSubtitle.innerText = "Módulo en desarrollo para el seguimiento de metas estratégicas";
+        headerActions.style.display = "none";
+      }
+    }
 
     function fetchAndProcessData() {
       const refreshIcon = document.getElementById('refreshIcon');
@@ -204,7 +303,6 @@
       return isNaN(num) ? 0 : num;
     }
 
-    // Procesamiento con filtrado estricto anti-DIV/0
     function processRawData(rows) {
       groupedData = {};
 
@@ -217,7 +315,6 @@
 
         if (!proceso || !indicador || !reporte) return;
 
-        // FILTRO STRICTO ANTI DIV/0 Y ERRORES DE EXCEL
         const tieneError = resultadoRaw.includes('#DIV/0!') || 
                            resultadoRaw.includes('#¡DIV/0!') || 
                            resultadoRaw.includes('#N/A') || 
@@ -226,7 +323,6 @@
 
         const tieneEjecucionValida = ejecucionRaw !== '' && ejecucionRaw !== null && ejecucionRaw !== undefined;
 
-        // Si hay error o no hay datos ejecutados, omitir la fila completamente
         if (tieneError || !tieneEjecucionValida) return;
 
         if (!groupedData[proceso]) groupedData[proceso] = {};
@@ -286,7 +382,6 @@
       const totalReportesAnio = parseInt(ultimoCorte['# REPORTES'] || '12') || 12;
       const reportesTranscurridos = cortes.length;
 
-      // 1. Periodicidad
       let freqLabel = 'Mensual';
       if (totalReportesAnio === 4) freqLabel = 'Trimestral';
       else if (totalReportesAnio === 2) freqLabel = 'Semestral';
@@ -295,7 +390,6 @@
       document.getElementById('kpiFreq').innerText = freqLabel;
       document.getElementById('kpiReportCount').innerText = `${reportesTranscurridos} de ${totalReportesAnio} reportes (${Math.round((reportesTranscurridos / totalReportesAnio) * 100)}% del año transcurrido)`;
 
-      // 2. Cumplimiento Proporcional Promedio
       let sumaPct = 0;
       let cantidadValidos = 0;
 
@@ -314,7 +408,6 @@
       resultadoElement.innerText = `${pctPromedio}%`;
       document.getElementById('kpiResultadoSub').innerText = `Promedio de los ${cantidadValidos} periodos evaluados`;
 
-      // 3. Estado Semafórico
       const statusElement = document.getElementById('kpiStatus');
       const statusIcon = document.getElementById('kpiStatusIcon');
 
@@ -332,7 +425,6 @@
         statusIcon.className = 'p-2.5 bg-rose-50 text-rose-600 rounded-xl';
       }
 
-      // 4. Tabla Histórica
       document.getElementById('tableTitle').innerText = `${indicador}`;
       document.getElementById('tableSub').innerText = `Proceso: ${proceso} | Periodicidad: ${freqLabel}`;
       document.getElementById('rowCount').innerText = `${cortes.length} reportes válidos`;
@@ -394,17 +486,15 @@
         return parseFloat(raw.replace('%', '').replace(',', '.')) || 0;
       });
 
-      // Gráfico 1: Meta vs Ejecución
       charts.trend.data = {
         labels: labels,
         datasets: [
           { label: 'Meta', data: metas, backgroundColor: '#cbd5e1' },
-          { label: 'Ejecución Real', data: ejecuciones, backgroundColor: '#4f46e5' }
+          { label: 'Ejecución Real', data: ejecuciones, backgroundColor: '#212952' }
         ]
       };
       charts.trend.update();
 
-      // Gráfico 2: % Cumplimiento
       charts.performance.data = {
         labels: labels,
         datasets: [{
